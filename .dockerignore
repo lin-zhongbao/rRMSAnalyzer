@@ -1,0 +1,9 @@
+.git
+.github
+docs
+inst/doc
+vignettes
+*.sif
+*.tar.gz
+.Rproj.user
+.Rhistory
