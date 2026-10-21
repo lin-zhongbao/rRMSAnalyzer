@@ -65,8 +65,9 @@ COPY . /opt/rRMSAnalyzer/
 # Dependencies first: this layer stays cached when only package sources change.
 RUN Rscript -e 'pak::local_install_dev_deps("/opt/rRMSAnalyzer")'
 
-# The package itself. Vignettes are not rebuilt (prebuilt HTML already in inst/doc).
-RUN R CMD INSTALL --no-multiarch --no-build-vignettes /opt/rRMSAnalyzer \
+# The package itself. `R CMD INSTALL` never rebuilds vignettes (that is
+# `R CMD build`), so the prebuilt HTML in inst/doc is installed as-is.
+RUN R CMD INSTALL --no-multiarch /opt/rRMSAnalyzer \
  && rm -rf /opt/rRMSAnalyzer
 
 # Build-time sanity checks.
