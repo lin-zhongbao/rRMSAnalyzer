@@ -1,0 +1,328 @@
+# Example code for Human analysis
+
+## Creation of a new folder in the repository 
+
+  
+
+open your repository, go to your folder of interest  
+- create a new folder  
+- copy and paste in this new folder:
+
+- metadata.csv created previously: to update it, open metadata.csv in
+  Excel, fill in the file and save it using .csv with “;” as
+  separator.  
+- rRMSAnalyzer_template.R
+  (<https://github.com/RibosomeCRCL/rRMSAnalyzer/tree/main/vignettes>)  
+- “human.methylated.rda” and “human.suspected.rda”
+  (<https://github.com/RibosomeCRCL/rRMSAnalyzer/tree/main/data>)  
+- a folder with all the 5’end read counts files  
+
+## Perform analysis using RStudio
+
+### Open RStudio
+
+### Update RMSAnalyzer
+
+``` r
+
+library(devtools)
+devtools::install_github("RibosomeCRCL/rRMSAnalyzer")
+library(rRMSAnalyzer)
+```
+
+## Create a RiboClass (metadata, counts, C-score parameters)
+
+As an example, the provided dataset “ribo_toy” is used.
+
+``` r
+
+data("ribo_toy")
+```
+
+Personal data preparation
+
+### Prepare the comparison table
+
+- open the metadata.csv using Excel  
+- add as many new columns as required (1 column per comparison, here
+  “column name” = “variableA to C”)  
+- complete the new columns with  
+  - ctrl = control condition  
+  - P1 = condition 1  
+  - P2 = condition 2….  
+    • NA = not applicable  
+    Save your metadata file using .csv and separator “;”  
+
+Here is an example of metadata:
+
+| filename | samplename | variableA | variableB | variableC | treatment | condition | lib |
+|----|----|----|----|----|----|----|----|
+| S26_R1.5_counts.csv | variableB_N2_P2 | NA | P2 | NA | variableB | P2 | L2 |
+| S27_R1.5_counts.csv | variableA_N2_P1 | P1 | NA | NA | variableA | P1 | L2 |
+| S28_R1.5_counts.csv | variableC_N1_ctrl | NA | NA | ctrl | variableC | ctrl | L2 |
+| S30_R1.5_counts.csv | variableB_N1_P2 | NA | P2 | NA | variableB | P2 | L2 |
+| S31_R1.5_counts.csv | variableC_N2_P2 | NA | NA | P2 | variableC | P2 | L2 |
+| S32_R1.5_counts.csv | variableA_N3_P1 | P1 | NA | NA | variableA | P1 | L2 |
+| S33_R1.5_counts.csv | variableA_N3_ctrl | ctrl | NA | NA | variableA | ctrl | L2 |
+| S34_R1.5_counts.csv | variableC_N1_ctrl | NA | NA | ctrl | variableC | ctrl | L2 |
+| S35_R1.5_counts.csv | variableA_N1_P2 | P2 | NA | NA | variableA | P2 | L2 |
+| S36_R1.5_counts.csv | variableA_N2_ctrl | ctrl | NA | NA | variableA | ctrl | L2 |
+| S37_R1.5_counts.csv | variableC_N2_ctrl | NA | NA | ctrl | variableC | ctrl | L2 |
+| S38_R1.5_counts.csv | variableA_N2_P2 | P2 | NA | NA | variableA | P2 | L2 |
+| S39_R1.5_counts.csv | variableC_N1_P2 | NA | NA | P2 | variableC | P2 | L2 |
+| S40_R1.5_counts.csv | variableB_N1_ctrl | NA | ctrl | NA | variableB | ctrl | L2 |
+| S41_R1.5_counts.csv | variableA_N1_P1 | P1 | NA | NA | variableA | P1 | L2 |
+| S42_R1.5_counts.csv | variableA_N1_ctrl | ctrl | NA | NA | variableA | ctrl | L2 |
+| S43_R1.5_counts.csv | variableC_N3_P2 | NA | NA | P2 | variableC | P2 | L2 |
+| S44_R1.5_counts.csv | variableB_N3_ctrl | NA | ctrl | NA | variableB | ctrl | L2 |
+| S45_R1.5_counts.csv | variableA_N3_P2 | P2 | NA | NA | variableA | P2 | L2 |
+
+In Rstudio, load a newRiboClass using:  
+
+``` r
+
+ribo <- load_ribodata(
+  #data & metadata files path
+  count_path = "~/Desktop/RMS/path/counts/",
+  metadata = "~/Desktop/RMS/path/metadata.csv",# data & metadata files separator
+  count_sep = "\t",
+  metadata_sep = ";",
+  # count data parameters :
+  count_header = FALSE,
+  count_value = 3,
+  count_rnaid = 1,
+  count_pos = 2,
+  # Metadata parameters :
+  metadata_key = "filename",
+  metadata_id = "samplename",
+  # c-score parameters :
+  flanking = 6,
+  method = "median",
+  ncores = 1)
+```
+
+### Check importation by ploting a PCA and COA
+
+``` r
+
+plot_pca(ribo,"run") #change column name of the lib if necessary #ribo_toy lib_col = "run"
+
+plot_coa(
+  ribo,
+  color_col = NULL,
+  axes = c(1, 2),
+  only_annotated = FALSE,
+  title = "default",
+  subtitle = "default",
+  object_only = FALSE
+)
+```
+
+## Perfom QC analysis
+
+#### Generate a QCreport
+
+``` r
+
+report_qc(ribo = ribo, specie = "human", library_col = "run", project_name = "my_project") #ribo_toy lib_col = "run"
+```
+
+#### Adjustment using ComBat-Seq if necessary
+
+``` r
+
+ribo_adj <- adjust_bias(ribo_toy,"run") 
+
+#verify the adjustment using a PCA
+plot_pca(ribo_adj,"lib")  #ribo_toy lib_col = "run"         
+
+report_qc(ribo = ribo_adj, specie = "human", library_col = "run", project_name = "name", comments = "./comment_QC.Rmd") #ribo_toy lib_col = "run"
+```
+
+### Remove problematic or unused samples (optionnal)
+
+#### To keep a small number of samples
+
+``` r
+
+ribo_adj_small <- keep_ribo_samples(ribo_adj,c("sample1","sample2","sample3","sample4"))
+```
+
+#### To remove a small number of samples
+
+``` r
+
+ribo_adj_small <- remove_ribo_samples(ribo_adj,c("xxxx","xxxccc","RNA_ref-1","RNA_ref-2")) # ribo_toy : ...,c("RNA1", "RNA2"))
+```
+
+#### Uniformisation of the RiboClass name
+
+``` r
+
+ribo_adj <- ribo_adj_small 
+```
+
+### Annotation of human rRNA 2’Ome sites
+
+Choose between 2 annotations: known (n=112 sites) or suspected (n=17).
+This section or the next one. If the two annotations are required, both
+of known and suspected sites analysis are desired, the 2 scripts has to
+be run twice from here.
+
+#### Annotation of the 112 known sites
+
+``` r
+
+data("human_methylated")
+cat("human_methylated's rna names: ", unique(human_methylated$rRNA),"\n")
+cat("ribo's rna names: ", as.character(ribo$rna_names$current_name)) # change name of RiboClass if necessary
+
+ribo_adj_name <- rename_rna(ribo, #change name of RiboClass if necessary for ribo_adj if you adjusted the data
+                            new_names = c("5S", "5.8S", "18S", "28S"))
+
+ribo_adj_annot <- annotate_site(ribo_adj_name, 
+                                annot = human_methylated,
+                                anno_rna = "rRNA",
+                                anno_pos = "Position",
+                                anno_value = "Nomenclature")
+```
+
+#### Annotation of the 19 suspected sites
+
+``` r
+
+load(file = "/home/path/to/RMS/human.suspected.rda") 
+
+ribo_adj_annot <- annotate_site(ribo_adj_annot, human.suspected) # verify rRNA names
+
+ribo_adj_annot <- annotate_site(ribo_adj_annot,
+                                annot = human.suspected,
+                                anno_rna = "rRNA",
+                                anno_pos = "Position",
+                                anno_value = "Nomenclature")
+```
+
+### Analytic reports
+
+#### Reports for comparisons explained in column 1
+
+In the previous example: in column “VariableA”, comparison ctrl vs P1
+and ctrl vs P2
+
+##### Filter the data
+
+To do only if you want to compare a subset of your samples (i.e., not
+all the samples included in the RiboClass).
+
+``` r
+
+kept_samples <- ribo_adj_annot$metadata %>%
+  # keep lines that are not "NA"
+  dplyr::filter(!is.na(variableA)) %>% #ribo_toy (!is.na(comp1))
+  dplyr::pull(samplename)
+
+#create a new RiboClass including the subdata variableA
+ribo_adj_annot_variableA <- keep_ribo_samples(ribo_adj_annot,kept_samples) #ribo_toy ribo_adj_annot_comp1 <- ...
+```
+
+##### Create mandatory comparison table for the report_diff_sites
+
+``` r
+
+comparisons <- tibble::tibble(
+  comp = c("comp1", "comp2"), #name of the 2 comparisons, add as many as required
+  ctrl = c("ctrl", "ctrl"), #name of the ctrl as appearing in your metadata for each comparison, in the order, add as many name than comparison that will be performed
+  cases = c("P1", "P2") #name of the cases as appearing in your metadata for each comparison, in the order, add as many name than comparison that will be performed
+)
+```
+
+##### Generate a report to compare 2’Ome profile
+
+``` r
+
+report_2ome_sites(ribo = ribo_adj_annot_variableA, specie = "human", condition_col = "variableA", project_name = "name", comments = "./path/to/comment_2ome_variableA.Rmd") 
+#condition_col: change the name of the column to perform new analysis. ribo_toy condition_col = "comp1"
+#comments: change the path and name of your files with your comments if required
+```
+
+##### Generate a report to perform site-by-site 2’Ome comparison
+
+``` r
+
+report_diff_sites(ribo = ribo_adj_annot_variableA, specie = "human", condition_col = "variableA", project_name = "name", comparisons = comparisons, comments = "./comment_diff_site_variableA.Rmd")
+#ribo_toy : ribo = ribo_adj_annot_comp1
+#condition_col: change the name of the column to perform new analysis . ribo_toy condition_col = "comp1"
+#comparisons: name of the comparison table
+#comments: change the name of your files with your comments if required
+```
+
+#### Reports for comparisons explained in column 2
+
+Re-do all the steps of [Reports for comparisons explained in column
+1](#reports-for-comparisons-explained-in-column-1) but using the name of
+your column of interest
+
+### Export data
+
+``` r
+
+ribo_df <- extract_data(ribo_adj_annot, #change for the annotated RiboClass if needed
+                        col = "cscore",
+                        only_annotated = TRUE)
+
+write.csv(ribo_df, "/path/to/folder/cscore_df.csv") #give path
+```
+
+### Check local environments of sites of interest (optionnal)
+
+If you want to verify a site that shows up as significant in the last
+report
+
+For all samples
+
+``` r
+
+plot_counts_env(ribo_adj_annot, rna= "18S", pos = 1442, samples = "all", condition = "condition")
+```
+
+For some samples
+
+``` r
+
+plot_counts_env(ribo_adj_annot, rna = "18S", pos = 1442, samples = c("sample1", "sample2"))
+```
+
+## Session info
+
+``` r
+
+sessionInfo()
+#> R version 4.6.1 (2026-06-24)
+#> Platform: x86_64-pc-linux-gnu
+#> Running under: Ubuntu 24.04.5 LTS
+#> 
+#> Matrix products: default
+#> BLAS:   /usr/lib/x86_64-linux-gnu/openblas-pthread/libblas.so.3 
+#> LAPACK: /usr/lib/x86_64-linux-gnu/openblas-pthread/libopenblasp-r0.3.26.so;  LAPACK version 3.12.0
+#> 
+#> locale:
+#>  [1] LC_CTYPE=C.UTF-8       LC_NUMERIC=C           LC_TIME=C.UTF-8       
+#>  [4] LC_COLLATE=C.UTF-8     LC_MONETARY=C.UTF-8    LC_MESSAGES=C.UTF-8   
+#>  [7] LC_PAPER=C.UTF-8       LC_NAME=C              LC_ADDRESS=C          
+#> [10] LC_TELEPHONE=C         LC_MEASUREMENT=C.UTF-8 LC_IDENTIFICATION=C   
+#> 
+#> time zone: UTC
+#> tzcode source: system (glibc)
+#> 
+#> attached base packages:
+#> [1] stats     graphics  grDevices utils     datasets  methods   base     
+#> 
+#> loaded via a namespace (and not attached):
+#>  [1] digest_0.6.39     desc_1.4.3        R6_2.6.1          fastmap_1.2.0    
+#>  [5] xfun_0.62         cachem_1.1.0      knitr_1.52        htmltools_0.5.9  
+#>  [9] rmarkdown_2.32    lifecycle_1.0.5   cli_3.6.6         sass_0.4.10      
+#> [13] pkgdown_2.2.1     textshaping_1.0.5 jquerylib_0.1.4   systemfonts_1.3.2
+#> [17] compiler_4.6.1    tools_4.6.1       ragg_1.5.2        bslib_0.12.0     
+#> [21] evaluate_1.0.5    yaml_2.3.12       otel_0.2.0        jsonlite_2.0.0   
+#> [25] rlang_1.3.0       fs_2.1.0          htmlwidgets_1.6.4
+```

@@ -1,0 +1,85 @@
+# rRMSAnalyzer: package to analyze RiboMethSeq data
+
+RiboMethSeq is an RNAseq-based approach to analyze 2’O-ribose
+methylation (2’Ome).
+
+rRMSAnalyzer is an R package that provides a set of easy-to-use
+functions to evaluate 2’Ome levels by computing C-scores from
+RiboMethSeq read end counts as input.
+
+Available features (version 3):
+
+- C-score computation
+- Batch effect adjustment with CombatSeq
+- Different visualizations to compare samples or sites
+- Include a table of annotated human rRNA sites
+- Export computed C-scores into a dataframe
+- Three novel functions to compute automatically reports (QC report and
+  2 analytic reports dedicated to 2’Ome profiles and site-by-site change
+  in 2’Ome)
+
+> **Note**: We have also developed a dedicated Nextflow pipeline
+> [(ribomethseq-nf)](https://github.com/RibosomeCRCL/ribomethseq-nf) to
+> process the data from sequencing output (fastq files) to useful raw
+> data for rRMSAnalyzer (read end counts).
+
+## Installation
+
+The latest version of rRMSAnalyzer package can be installed from Github
+with:
+
+``` r
+
+library(devtools)
+devtools::install_github("RibosomeCRCL/rRMSAnalyzer")
+```
+
+## Usage
+
+``` r
+
+library(rRMSAnalyzer)
+
+ribo <- load_ribodata(
+              count_path = "/path/to/your/csvfiles/directory/",
+              metadata = "path/to/metadata.csv",
+              metadata_key = "filename",
+              metadata_id = "samplename")
+
+# Compute the C-score using different parameters,
+# including calculation of the local coverage using the mean instead of the median
+ribo <- compute_cscore(ribo, method = "mean")
+
+# If necessary, adjust any technical biases using ComBat-Seq.
+# Here, as an example, we use the "library" column in metadata.
+ribo <- adjust_bias(ribo,"library")
+
+# Plot a Principal Component Analysis (PCA) whose colors depend on the "condition" column in metadata
+plot_pca(ribo,"condition")
+```
+
+## Getting started
+
+The “getting started” is available on our Github page:
+<https://ribosomecrcl.github.io/rRMSAnalyzer/>
+
+A test dataset (ribo_toy) is included in the package.
+
+## Help, bug reports and suggestions
+
+To report a bug or any suggestion to improve the package, please let us
+known by opening a new issue on:
+<https://github.com/RibosomeCRCL/rRMSAnalyzer/issues>
+
+## Acknowledgements
+
+We would like to thank all our collaborators from Jean-Jacques Diaz Team
+and the Bioinformatic Platform Gilles Thomas for their advices and
+suggestions.
+
+## Funding
+
+This project has been funded by the French Cancer Institute (INCa, PLBIO
+2019-138 MARACAS, INCa_18375), the SIRIC Program (INCa-DGOS-Inserm_12563
+LyRICAN), LabEX program (DEVweCan), the French association Ligue
+Nationale Contre le Cancer and Synergie Lyon Cancer Foundation.
